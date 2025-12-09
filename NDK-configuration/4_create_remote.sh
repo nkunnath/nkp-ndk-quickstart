@@ -21,7 +21,7 @@
 
 CONTEXTS=$(kubectl config get-contexts --output=name)
 echo
-echo "Select the cluster on which to install StorageCluster or CTRL-C to quit"
+echo "Select the cluster on which to install Remote or CTRL-C to quit"
 select CONTEXT in $CONTEXTS; do 
     echo "you selected cluster context : ${CONTEXT}"
     echo 
@@ -35,59 +35,28 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-CSICREDS=$(kubectl get secret nutanix-csi-credentials -n ntnx-system -o yaml |yq e '.data.key' |base64 -d)
-CSIPC=$(echo $CSICREDS |awk -F ':' '{print $1}' )
-CSIUSER=$(echo $CSICREDS |awk -F ':' '{print $3}' )
-CSIPASSWD=$(echo $CSICREDS |awk -F ':' '{print $4}' )
-export PCADMIN=$CSIUSER
-export PCPASSWD=$CSIPASSWD
-export PCIPADDRESS=$CSIPC
-
-source ../pc-restapi/prism-rest-api.sh
-echo echo "getting aos clusters"
-PENAMES=$(get_aos_clusters_name) 
-select PENAME in $PENAMES; do 
-    echo "you selected PE Cluster : ${PENAME}"
-    echo 
-    PENAME="${PENAME}"
-    PENAMELOWERCASE=$(echo "${PENAME}"| tr '[:upper:]' '[:lower:]' )
-    break
-done
-
-echo $PENAME
 echo
-PEUUID=$(get_aos_clusters_uuid $PENAME)
-if [ "$PEUUID" == "" ]; then
-    echo "getting PE $PENAME UUID error. Exiting."
-    exit 1
-fi
-
-echo $PEUUID
+read -p "Enter NDK remote IP: " NDK_REMOTE_IP < /dev/tty
 echo
-echo "getting PC clusters"
-
-PCUUID=$(get_PC_clusters_uuid)
-if [ "$PCUUID" == "" ]; then
-    echo "getting PC UUID error. Exiting."
-    exit 1
-fi
-
-echo $PCUUID
+read -p "Enter NDK remote instance name: " NDK_REMOTE_NAME < /dev/tty
 echo
 
-SCS=$(kubectl get sc -A|grep nutanix |awk '{print $1}')
 
-StorageCluster="apiVersion: dataservices.nutanix.com/v1alpha1
-kind: StorageCluster
+
+Remote="apiVersion: dataservices.nutanix.com/v1alpha1
+kind: Remote
 metadata:
- name: $PENAMELOWERCASE
+  name: remote-${NDK_REMOTE_NAME}
 spec:
- storageServerUuid: $PEUUID
- managementServerUuid: $PCUUID"
+  clusterName: ${NDK_REMOTE_NAME}
+  ndkServiceIp: ${NDK_REMOTE_IP}
+  ndkServicePort: 2021
+  tlsConfig:
+    skipTLSVerify: true"
 
-YAMLFILE=storagecluster-$PENAMELOWERCASE.yaml
+YAMLFILE=remote-${NDK_REMOTE_NAME}.yaml
 
-echo "$StorageCluster" | yq e > $YAMLFILE
+echo "$Remote" | yq e > $YAMLFILE
 echo "$YAMLFILE created"
 echo 
 echo "run : kubectl apply -f $YAMLFILE to apply to cluster"

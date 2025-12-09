@@ -53,14 +53,60 @@ helm repo add nutanix-helm-releases https://nutanix.github.io/helm-releases/ && 
 
 helm install ndk nutanix-helm-releases/ndk \
   --namespace ntnx-system \
-  --version ${NDK_VERSION}$ \
+  --version ${NDK_VERSION} \
   --set config.secret.name=nutanix-csi-credentials \
   --set imageCredentials.credentials.username=${DOCKERHUB_USERNAME} \
   --set imageCredentials.credentials.password=${DOCKERHUB_ACCESS_TOKEN} \
   --set tls.server.clusterName=${NDK_NAME}
 ```
+
+Validate NDK hs been deployed successfully:
+```
+kubectl get deployment/ndk-controller-manager -n ntnx-system
+```
+
+### Uninstallation ###
+```
+helm uninstall ndk --namespace ntnx-system
+```
+
 ---
 For NDK on airgapped installation, follow this [procedure](airgapped/README.md).
 
 ---
 
+### NDK StorageCluster ###
+
+A `StorageCluster` custom resource provides NDK with information on interacting with the infrastructure layer. The Prism Element cluster, which provisions the storage and Prism Central UUID's are passed in as parameters.
+
+Note that this is a one-time operation performed by the platform team on each Kubernetes cluster.
+
+Create the `StorageCluster` object on all the Kubernetes clusters participating in DR with NDK.
+```
+cd NDK-configuration && ./0_create_storage_cluster.sh
+```
+
+
+---
+### NDK Remote ###
+
+In order to establish pairing between NDK instances on different Kubernetes clusters, NDK provides a custom resource called `Remote`.
+
+On a "source cluster", a `Remote` object must be created pointing to the NDK service address of the remote cluster. 
+
+
+> How do I get the NDK service IP on each cluster?
+
+```
+kubectl get service -n ntnx-system ndk-intercom-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+```
+If you wish to setup synchronous replication, then the `Remote` object has to be created on both the Kubernetes clusters.
+```
+cd NDK-configuration && ./4_create_remote.sh
+```
+
+
+Ensure the NDK instances can communicate with eaach other by verifying the status is available before proceeding further.
+```
+kubectl get remote
+```

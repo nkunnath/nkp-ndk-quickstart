@@ -26,6 +26,7 @@ git clone https://github.com/nkunnath/nkp-ndk-quickstart.git && cd nkp-ndk-quick
 ./1-load-ndk-images.sh
 ```
 <br>
+
 3. Push the images to your private registry.
 ```
 ./2-push-ndk.sh 
@@ -33,7 +34,7 @@ git clone https://github.com/nkunnath/nkp-ndk-quickstart.git && cd nkp-ndk-quick
 > **Notes:**
 > [Optional]: If this registry uses a self signed CA and the K8s cluster does not trust the CA, follow the steps below to add the registry configuration to the cluster. 
 
-> ---
+---
 > If installing on NKP:
 > ---
 > - In the workspace namespace on the NKP management cluster, create a Kubernetes Secret with the ca.crt key > populated with the CA certificate in PEM format:
@@ -63,12 +64,13 @@ spec:
                   name: my-mirror-ca-cert
 ```
 
-> ---
+---
 > If installing on OpenShift:
 > ---
 > Follow this guide: https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html-single/registry/index#images-configuration-cas_configuring-registry-operator
 
 <br>
+
 4. Install NDK in the K8s clusters.
 ```
 ./3-helm-install-ndk.sh 
