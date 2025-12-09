@@ -26,10 +26,10 @@
 
 #get download link:
 echo
-echo "open a browser to page : https://portal.nutanix.com/page/downloads?product=ndk"
+echo "Open a browser to page : https://portal.nutanix.com/page/downloads?product=ndk"
 echo
 # Prompt the user for the download link
-read -p "Enter 'Nutanix Data Services for Kubernetes' download link: " url < /dev/tty
+read -p "Enter 'Nutanix Data Services for Kubernetes' bundle download link: " url < /dev/tty
 
 # Check if URL is empty
 if [ -z "$url" ]; then

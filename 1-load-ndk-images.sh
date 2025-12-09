@@ -23,20 +23,21 @@
 
 #------------------------------------------------------------------------------
 
-echo "checking NDK"
+echo "Checking NDK download"
 ndkdir=$(ls -d ndk-*)
 # Check if directory is empty
 if [[ ! -d "$ndkdir" ]]; then
-    echo "No ndk directory. Exiting."
+    echo "No NDK directory. Exiting."
     exit 1
 fi
 
-echo "loading ndk in docker images"
-ndktar=$(ls $ndkdir/ndk-*tar)
+echo "Loading NDK in docker images"
+ndktar=$(ls "$ndkdir"/ndk-*.tar | grep -v recipes)
 if [[ ! -e "$ndktar" ]]; then
-    echo "No ndk tar found. Exiting."
+    echo "No main NDK tar found. Exiting."
     exit 1
 fi
+
 
 docker image load -i $ndktar
 if [ $? -ne 0 ]; then

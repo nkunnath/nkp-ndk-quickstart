@@ -65,4 +65,4 @@ do
 done
 
 echo 
-echo "done pushing agents"
+echo "Successfully pushed NDK images to the private registry"

@@ -1,5 +1,6 @@
-registry.nutanixdemo.com/ndk/ndk/manager:1.2.0
-registry.nutanixdemo.com/ndk/ndk/infra-manager:1.2.0
-registry.nutanixdemo.com/ndk/ndk/bitnami-kubectl:1.30.3
-registry.nutanixdemo.com/ndk/ndk/job-scheduler:1.2.0
-registry.nutanixdemo.com/ndk/ndk/kube-rbac-proxy:v0.17.0
+
+harbor-lab.thencpnutanix.com/library/ndk/manager:2.0.0
+harbor-lab.thencpnutanix.com/library/ndk/infra-manager:2.0.0
+harbor-lab.thencpnutanix.com/library/ndk/job-scheduler:2.0.0
+harbor-lab.thencpnutanix.com/library/ndk/kubectl:1.32.3
+harbor-lab.thencpnutanix.com/library/ndk/kube-rbac-proxy:v0.19.0

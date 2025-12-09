@@ -26,7 +26,7 @@
 #Get cluster context
 CONTEXTS=$(kubectl config get-contexts  --no-headers=true |awk '{print $2}')
 echo
-echo "Select workload cluster on which to UNINSTALL agent or CTRL-C to quit"
+echo "Select cluster on which to UNINSTALL NDK or CTRL-C to quit"
 select CONTEXT in $CONTEXTS; do 
     echo "you selected cluster context : ${CONTEXT}"
     echo 
@@ -39,8 +39,8 @@ kubectl config use-context $CLUSTERCTX
 export CLUSTER_NAME=$(kubectl get cm kubeadm-config -n kube-system -o yaml |yq e '.data.ClusterConfiguration' |yq e '.clusterName')
 export CLUSTER_UUID=$(kubectl get ns kube-system -o json |jq -r '.metadata.uid') 
 echo
-echo "about to UNINSTALL Nutanix Data Services for Kubernetes on cluster : $CLUSTER_NAME - cluster UID : $CLUSTER_UUID"
-echo "press enter to confirm or CTRL-C to cancel"
+echo "About to UNINSTALL Nutanix Data Services for Kubernetes on cluster : $CLUSTER_NAME - cluster UID : $CLUSTER_UUID"
+echo "Press enter to confirm or CTRL-C to cancel"
 read
 
 #Checking ntnx-system ns presence

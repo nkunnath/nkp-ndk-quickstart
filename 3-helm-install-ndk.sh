@@ -33,7 +33,7 @@ fi
 #Get cluster context
 CONTEXTS=$(kubectl config get-contexts --output=name)
 echo
-echo "Select workload cluster on which to install ndk or CTRL-C to quit"
+echo "Select the cluster on which to install NDK or CTRL-C to quit"
 select CONTEXT in $CONTEXTS; do 
     echo "you selected cluster context : ${CONTEXT}"
     echo 
@@ -50,7 +50,7 @@ echo "about to install Nutanix Data Services for Kubernetes on cluster : $CLUSTE
 echo "press enter to confirm or CTRL-C to cancel"
 read
 
-echo "checking NDK "
+echo "Checking NDK "
 k8sdir=$(ls -d ndk-*)
 # Check if directory is empty
 if [[ ! -d "$k8sdir" ]]; then
@@ -58,7 +58,7 @@ if [[ ! -d "$k8sdir" ]]; then
     exit 1
 fi
 
-echo "getting ndk chart version"
+echo "Getting NDK chart version"
 ChartName=$(yq e '.name' $k8sdir/chart/Chart.yaml)
 if [ $? -ne 0 ]; then
     echo "Error getting chart name. Exiting."
@@ -92,19 +92,24 @@ NDKSECRET=nutanix-csi-credentials
 if  [ $CSIUSER != "admin" ]; then
     echo "nutanix-csi-credentials user is not 'admin'."
     echo
-    
-    echo "provide admin password for ndk secret creation or press CTRL-C to cancel"
-    read -sp "admin password: " adminpasswd < /dev/tty
 
-    if [ $adminpasswd != "" ]
+    echo "Provide a user with admin privileges for NDK secret creation or press CTRL-C to cancel"
+    read -rp "admin username: " adminusername < /dev/tty
+    echo
+
+    echo "Provide password for NDK secret creation or press CTRL-C to cancel"
+    read -rsp "admin password: " adminpasswd < /dev/tty
+
+    if [ -n "$adminpasswd" ];
     then
-        kubectl create secret generic ndk-credentials -n ntnx-system --from-literal key="$CSIPC:9440:admin:$adminpasswd"
+        kubectl create secret generic ndk-credentials -n ntnx-system --from-literal key="$CSIPC:9440:$adminusername:$adminpasswd"
         NDKSECRET=ndk-credentials
     else
         echo "admin password is empty. exiting"
         exit 1
     fi
 fi
+
 
 #Getting Nutanix PC creds for agent
 NDKIMGREPO=$(cat "./ndkimagerepo")
@@ -117,9 +122,9 @@ MGRTAG=$(echo "$NDKIMGREPO"  |grep /manager |awk -F ':' '{print $2}')
 INFRAMGRREPO=$(echo "$NDKIMGREPO"  |grep /infra-manager |awk -F ':' '{print $1}' )
 INFRAMGRTAG=$(echo "$NDKIMGREPO"  |grep /infra-manager |awk -F ':' '{print $2}')
 
-#bitnami
-BITNAMIREPO=$(echo "$NDKIMGREPO"  |grep /bitnami |awk -F ':' '{print $1}' )
-BITNAMITAG=$(echo "$NDKIMGREPO"  |grep /bitnami |awk -F ':' '{print $2}')
+#kubectl
+KUBECTLREPO=$(echo "$NDKIMGREPO"  |grep /kubectl |awk -F ':' '{print $1}' )
+KUBECTLTAG=$(echo "$NDKIMGREPO"  |grep /kubectl |awk -F ':' '{print $2}')
 
 #job-scheduler
 JOBREPO=$(echo "$NDKIMGREPO"  |grep /job |awk -F ':' '{print $1}' )
@@ -129,6 +134,8 @@ JOBTAG=$(echo "$NDKIMGREPO"  |grep /job |awk -F ':' '{print $2}')
 KUBERBACREPO=$(echo "$NDKIMGREPO"  |grep /kube-rbac-proxy |awk -F ':' '{print $1}' )
 KUBERBACTAG=$(echo "$NDKIMGREPO"  |grep /kube-rbac-proxy |awk -F ':' '{print $2}')
 
+echo "Installing NDK..."
+
 helm install ndk -n ntnx-system  $k8sdir/chart \
 --set manager.repository=$MGRREPO \
 --set manager.tag=$MGRTAG \
@@ -136,12 +143,46 @@ helm install ndk -n ntnx-system  $k8sdir/chart \
 --set infraManager.tag=$INFRAMGRTAG \
 --set kubeRbacProxy.repository=$KUBERBACREPO \
 --set kubeRbacProxy.tag=$KUBERBACTAG \
---set bitnamiKubectl.repository=$BITNAMIREPO \
---set bitnamiKubectl.tag=$BITNAMITAG \
+--set kubectl.repository=$KUBECTLREPO \
+--set kubectl.tag=$KUBECTLTAG \
 --set jobScheduler.repository=$JOBREPO \
 --set jobScheduler.tag=$JOBTAG \
 --set tls.server.clusterName=$CLUSTER_NAME \
---set config.secret.name=$NDKSECRET 
+--set config.secret.name=$NDKSECRET \
+--set imageCredentials.credentials.registry="$registry:$registryrepo" \
+--set imageCredentials.credentials.username="$registryuser" \
+--set imageCredentials.credentials.password="$registrypasswd"
 
 echo
-echo "NDK chart installed"
+echo "Waiting for NDK controller-manager pod to become Ready..."
+
+MAX_RETRIES=120     # 120 seconds timeout
+RETRY=0
+
+while true; do
+    # get pod name
+    pod=$(kubectl get pods -n ntnx-system -o jsonpath="{.items[?(@.metadata.labels['app']=='ndk-controller-manager')].metadata.name}")
+
+    if [[ -z "$pod" ]]; then
+        echo "Pod not created yet... retry $RETRY/$MAX_RETRIES"
+    else
+        # check Ready condition
+        ready=$(kubectl get pod "$pod" -n ntnx-system -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}")
+        echo "Pod: $pod Ready: $ready (retry $RETRY/$MAX_RETRIES)"
+
+        if [[ "$ready" == "True" ]]; then
+            echo "NDK is installed successfully and the controller-manager pod is Ready."
+            break
+        fi
+    fi
+
+    ((RETRY++))
+    if [[ $RETRY -ge $MAX_RETRIES ]]; then
+        echo "NDK installation failed: controller-manager pod did not become Ready in time."
+        exit 1
+    fi
+
+    sleep 1
+done
+
+
