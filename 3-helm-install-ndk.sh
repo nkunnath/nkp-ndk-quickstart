@@ -46,8 +46,8 @@ kubectl config use-context $CLUSTERCTX
 export CLUSTER_NAME=$(kubectl get cm kubeadm-config -n kube-system -o yaml |yq e '.data.ClusterConfiguration' |yq e '.clusterName')
 export CLUSTER_UUID=$(kubectl get ns kube-system -o json |jq -r '.metadata.uid') 
 echo
-echo "about to install Nutanix Data Services for Kubernetes on cluster : $CLUSTER_NAME - cluster UID : $CLUSTER_UUID"
-echo "press enter to confirm or CTRL-C to cancel"
+echo "About to install Nutanix Data Services for Kubernetes on cluster : $CLUSTER_NAME - cluster UID : $CLUSTER_UUID"
+echo "Press enter to confirm or CTRL-C to cancel"
 read
 
 echo "Checking NDK "
@@ -161,7 +161,7 @@ RETRY=0
 
 while true; do
     # get pod name
-    pod=$(kubectl get pods -n ntnx-system -o jsonpath="{.items[?(@.metadata.labels['app']=='ndk-controller-manager')].metadata.name}")
+    pod=$(kubectl get pods -n ntnx-system | grep '^ndk-controller-manager' | awk '{print $1}')
 
     if [[ -z "$pod" ]]; then
         echo "Pod not created yet... retry $RETRY/$MAX_RETRIES"
