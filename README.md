@@ -88,28 +88,30 @@ git clone https://github.com/nkunnath/nkp-ndk-quickstart.git && cd nkp-ndk-quick
 > ---
 > - In the workspace namespace on the NKP management cluster, create a Kubernetes Secret with the ca.crt key > populated with the CA certificate in PEM format:
 
-> kubectl create secret generic my-mirror-ca-cert \
->   --namespace=<WORKSPACE_NAMESPACE>
->   --from-file=ca.crt=registry-ca.crt
-
+```
+kubectl create secret generic my-mirror-ca-cert \
+  --namespace=<WORKSPACE_NAMESPACE>
+  --from-file=ca.crt=registry-ca.crt
+```
 
 > - To add image registry credentials and/or CA certificate, specify the following configuration in the Cluster object of the NKP cluster(s):
 
-> apiVersion: cluster.x-k8s.io/v1beta1
-> kind: Cluster
-> metadata:
->   name: <NAME>
-> spec:
->   topology:
->     variables:
->       - name: clusterConfig
->         value:
->           imageRegistries:
->             - url: https://my-registry.io
->               credentials:
->                 secretRef:
->                   name: my-mirror-ca-cert
-
+```
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: <NAME>
+spec:
+  topology:
+    variables:
+      - name: clusterConfig
+        value:
+          imageRegistries:
+            - url: https://my-registry.io
+              credentials:
+                secretRef:
+                  name: my-mirror-ca-cert
+```
 
 > ---
 > If installing on OpenShift:
