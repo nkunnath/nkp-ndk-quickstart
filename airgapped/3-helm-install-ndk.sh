@@ -136,6 +136,7 @@ KUBERBACTAG=$(echo "$NDKIMGREPO"  |grep /kube-rbac-proxy |awk -F ':' '{print $2}
 
 echo "Installing NDK..."
 
+# imageCredentials are not set as they are saved in ~/.docker/config.json after executing 2-push-ndk.sh
 helm install ndk -n ntnx-system  $k8sdir/chart \
 --set manager.repository=$MGRREPO \
 --set manager.tag=$MGRTAG \
@@ -149,40 +150,21 @@ helm install ndk -n ntnx-system  $k8sdir/chart \
 --set jobScheduler.tag=$JOBTAG \
 --set tls.server.clusterName=$CLUSTER_NAME \
 --set config.secret.name=$NDKSECRET \
---set imageCredentials.credentials.registry="$registry:$registryrepo" \
---set imageCredentials.credentials.username="$registryuser" \
---set imageCredentials.credentials.password="$registrypasswd"
 
 echo
-echo "Waiting for NDK controller-manager pod to become Ready..."
+echo "Waiting for NDK controller-manager deployment to become Available..."
 
-MAX_RETRIES=120     # 120 seconds timeout
-RETRY=0
+# Use kubectl wait directly
+if kubectl wait \
+    --for=condition=Available \
+    deployment/ndk-controller-manager \
+    -n ntnx-system \
+    --timeout=10m; then
 
-while true; do
-    # get pod name
-    pod=$(kubectl get pods -n ntnx-system | grep '^ndk-controller-manager' | awk '{print $1}')
+    echo "NDK is installed successfully and the controller-manager deployment is Available."
 
-    if [[ -z "$pod" ]]; then
-        echo "Pod not created yet... retry $RETRY/$MAX_RETRIES"
-    else
-        # check Ready condition
-        ready=$(kubectl get pod "$pod" -n ntnx-system -o jsonpath="{.status.conditions[?(@.type=='Ready')].status}")
-        echo "Pod: $pod Ready: $ready (retry $RETRY/$MAX_RETRIES)"
-
-        if [[ "$ready" == "True" ]]; then
-            echo "NDK is installed successfully and the controller-manager pod is Ready."
-            break
-        fi
-    fi
-
-    ((RETRY++))
-    if [[ $RETRY -ge $MAX_RETRIES ]]; then
-        echo "NDK installation failed: controller-manager pod did not become Ready in time."
-        exit 1
-    fi
-
-    sleep 1
-done
-
+else
+    echo "NDK installation failed: controller-manager deployment did not become Available in time."
+    exit 1
+fi
 
