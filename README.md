@@ -38,19 +38,22 @@ kubectl create secret generic nutanix-csi-credentials \
    --from-literal=key=<PC_IP/FQDN:9440:username:password>
 ```
 <br>
-2. Install the Helm chart for NDK from the Nutanix DockerHub registry on both the K8s clusters. <br> This skips TLS verification between the two NDK instances. Pleae follow the documentation if you wish to bring your certificates and configure TLS encryption. Ensure you provide a unique name for each NDK instance in the flag `tls.server.clusterName`. The username and token are available from the [Nutanix portal](https://portal.nutanix.com/page/downloads?product=ndk).
+
+2. Install the Helm chart for NDK from the Nutanix DockerHub registry on both the K8s clusters. <br> This skips TLS verification between the two NDK instances. Please follow the documentation if you wish to bring your certificates and configure TLS encryption. 
+Ensure you set the variables below. The username and token are available from the [Nutanix portal](https://portal.nutanix.com/page/downloads?product=ndk).
 
 ```
 export DOCKERHUB_USERNAME=nutanixndk
 export DOCKERHUB_ACCESS_TOKEN=""
-export NDK_NAME=""
+export NDK_NAME=""    # Unique name for each NDK instance 
+export NDK_VERSION=2.0.0 
 ```
 ```
 helm repo add nutanix-helm-releases https://nutanix.github.io/helm-releases/ && helm repo update nutanix-helm-releases
 
 helm install ndk nutanix-helm-releases/ndk \
   --namespace ntnx-system \
-  --version 2.0.0 \
+  --version ${NDK_VERSION}$ \
   --set config.secret.name=nutanix-csi-credentials \
   --set imageCredentials.credentials.username=${DOCKERHUB_USERNAME} \
   --set imageCredentials.credentials.password=${DOCKERHUB_ACCESS_TOKEN} \
